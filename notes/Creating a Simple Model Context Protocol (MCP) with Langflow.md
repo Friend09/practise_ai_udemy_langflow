@@ -1,27 +1,26 @@
-# Creating a Simple Model Context Protocol (MCP) with Langflow
+# Integrating External Model Context Protocol (MCP) Servers with Langflow
 
-This guide provides step-by-step instructions on how to create and test a basic Model Context Protocol (MCP) using the Langflow tool. Langflow is a visual programming interface for building and deploying AI applications, and it offers robust support for MCP as both a client and a server [1].
+This guide provides step-by-step instructions on how to integrate external Model Context Protocol (MCP) servers with Langflow, enabling agentic workflows where the LLM orchestrates specialized tools through standardized communications. Langflow acts as an MCP client, connecting to external MCP servers to access their exposed tools within your agentic workflows [1].
 
 ## Prerequisites
 
 Before you begin, ensure you have the following:
 
-- **Python 3.9+**: Langflow requires a compatible Python version.
-- **Docker (Recommended)**: The easiest way to run Langflow is via Docker. If you don't have Docker installed, you can download it from [Docker Desktop](https://www.docker.com/products/docker-desktop/).
-- **Basic understanding of MCP**: Familiarity with MCP concepts (hosts, clients, servers, tools) will be beneficial.
+*   **Python 3.9+**: Langflow requires a compatible Python version.
+*   **Docker (Recommended)**: The easiest way to run Langflow is via Docker. If you don't have Docker installed, you can download it from [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+*   **A running external MCP Server**: You will need an MCP server that exposes tools. For example, the `system_info_server.py`, `pg_mcp_server.py`, or `productivity_mcp_server.py` from our MCP course can serve this purpose.
+*   **Understanding of MCP and agentic workflows**: Familiarity with how MCP serves as a communication protocol between LLMs and specialized tools within agentic workflows will be beneficial.
 
 ## Step 1: Setting Up Langflow
 
 The quickest way to get Langflow up and running is by using Docker. Open your terminal and execute the following commands:
 
 1.  **Pull the Langflow Docker image:**
-
     ```bash
     docker pull langflowai/langflow
     ```
 
 2.  **Run the Langflow Docker container:**
-
     ```bash
     docker run -p 7860:7860 langflowai/langflow
     ```
@@ -32,84 +31,74 @@ The quickest way to get Langflow up and running is by using Docker. Open your te
 
 1.  Open your web browser and navigate to `http://localhost:7860`.
 2.  You will be greeted by the Langflow interface. Click on the **"New Project"** button or navigate to the project creation section.
-3.  Give your project a meaningful name (e.g., "Simple MCP Demo") and click "Create". You will be presented with a blank canvas, which is where you will build your MCP flow.
+3.  Give your project a meaningful name (e.g., "External MCP Integration") and click "Create". You will be presented with a blank canvas.
 
-## Step 3: Adding MCP Components
+## Step 3: Adding the `MCP Tools` Component (Communication Layer)
 
-Langflow provides specific components for working with MCP. We will use the `MCP Tool` component to define our MCP server's capabilities.
+Langflow uses the `MCP Tools` component to create the communication infrastructure between your LLM and external MCP servers. This component enables the standardized MCP protocol that allows your agentic workflows to discover and interact with specialized external tools.
 
-1.  On the left-hand sidebar, search for **"MCP Tool"** in the components search bar.
-2.  Drag and drop the `MCP Tool` component onto the canvas.
-3.  You can rename the component on the canvas for clarity (e.g., "System Info Tool").
+1.  On the left-hand sidebar, search for **"MCP Tools"** in the components search bar.
+2.  Drag and drop the `MCP Tools` component onto the canvas.
 
-## Step 4: Configuring the MCP Tool
+## Step 4: Configuring the `MCP Tools` Component to Connect to an External Server
 
-Now, let's configure our `MCP Tool` to expose a simple function, similar to the `get_system_info` example from our course.
+This is the crucial step where you tell Langflow how to connect to your external MCP server. The `MCP Tools` component offers different modes for connection:
 
-1.  Double-click on the `MCP Tool` component on the canvas to open its configuration panel.
-2.  In the `Code` field, you will define the Python function that your MCP tool will execute. For a simple system information tool, you can use the following Python code:
+1.  **Double-click** on the `MCP Tools` component on the canvas to open its configuration panel.
+2.  In the `MCP Server` field, click **"Add MCP Server"**.
+3.  You will see options to add a server via **JSON**, **STDIO**, or **SSE**. For the MCP servers we built in the course (which communicate over standard input/output), the **STDIO** mode is most appropriate.
 
-```python
-import platform
+    *   **STDIO Mode Configuration (for our course MCP servers)**:
+        *   **Name**: Provide a descriptive name for your MCP server (e.g., `SystemInfoServer`, `PostgreSQLServer`, `ProductivityAppServer`).
+        *   **Command**: This is the command that Langflow will execute to start your MCP server. It should be the Python command to run your server script. For example:
+            ```
+            python /path/to/your/mcp_course/system_info_server.py
+            ```
+            (Replace `/path/to/your/mcp_course/` with the actual absolute path to your `mcp_course` directory on your system).
+        *   **Arguments**: Any command-line arguments your server script might need (leave blank for our course examples).
+        *   **Environment Variables**: If your MCP server relies on environment variables (like `PG_HOST`, `PG_DATABASE`, etc., for the PostgreSQL MCP server), you can define them here. Enter each variable as `VARIABLE=value`.
 
-def get_system_info() -> dict:
-    """Returns basic system information."""
-    info = {
-        "system": platform.system(),
-        "node_name": platform.node(),
-        "release": platform.release(),
-        "version": platform.version(),
-        "machine": platform.machine(),
-        "processor": platform.processor(),
-    }
-    return info
-```
+4.  Click **"Add Server"** after configuring the details.
+5.  Back in the `MCP Tools` component configuration, in the **"Tool"** field, you can select a specific tool exposed by your connected MCP server, or leave it blank to allow access to all tools. For example, for `system_info_server.py`, you might select `get_system_info`.
+6.  **Enable Tool Mode**: In the component's header menu (usually a small gear icon or context menu), ensure **"Tool mode"** is enabled. This makes the tools from this MCP server available to an `Agent` component.
 
-3.  **Important**: In the `Function Name` field, enter `get_system_info`. This tells Langflow which function within your provided code should be exposed as an MCP tool.
-4.  Ensure the `Tool Name` field is set to something descriptive, like `system_info_tool`.
-5.  Click **"Save"** to apply the changes to the component.
+## Step 5: Connecting to an Agent (The Orchestrator of Your Agentic Workflow)
 
-## Step 5: Exposing the MCP Flow as a Server
+To create a complete agentic workflow, you need to connect your MCP tools to an `Agent` component. The Agent component contains the LLM that will serve as the "brain" of your workflow - planning actions, orchestrating tools, and synthesizing responses.
 
-To make your Langflow project accessible as an MCP server, you need to configure the project's deployment settings.
+1.  Drag and drop an `Agent` component onto your canvas (if you don't have one already).
+2.  Connect the **`Toolset`** port of your `MCP Tools` component to the **`Tools`** port of your `Agent` component. This makes the MCP tools accessible to the Agent's LLM through the MCP protocol.
+3.  Configure your `Agent` component with:
+    * An appropriate LLM (e.g., OpenAI, Anthropic)
+    * Clear instructions that guide the Agent on when and how to use each MCP tool
+    * Specifications for the planning, action, and synthesis phases of your workflow
 
-1.  In the Langflow interface, locate the **"Deploy"** or **"Export"** option for your project (usually found in the top right corner or a dedicated deployment tab).
-2.  Look for options related to **"MCP Server"** or **"Expose as MCP"**. Enable this option.
-3.  Langflow will provide you with a command or instructions to run your project as an MCP server. This typically involves a command like `langflow run --as-mcp <project_id>` or similar, which you would execute in a new terminal window.
+## Step 6: Testing Your Agentic Workflow
 
-    **Note**: The exact command might vary slightly depending on your Langflow version and how you installed it. Refer to Langflow's official documentation for the most up-to-date deployment instructions [2].
-
-## Step 6: Testing Your MCP Flow
-
-Once your Langflow project is running as an MCP server, you can test it using an MCP client (like Claude Desktop, Cursor, or a custom Python script).
-
-### Using a Custom Python Client (Conceptual)
-
-Similar to the `mcp_client.py` we developed in the course, you would send a JSON-RPC request to the Langflow-hosted MCP server. The request would look like this:
-
-```json
-{
-  "jsonrpc": "2.0",
-  "method": "system_info_tool_get_system_info",
-  "params": [],
-  "id": 1
-}
-```
-
-**Explanation of the `method` name**: Langflow typically prefixes the function name with the tool name (e.g., `system_info_tool_get_system_info`). You might need to inspect the Langflow server logs or documentation to confirm the exact method name exposed.
-
-When you send this request to your running Langflow MCP server, it will execute the `get_system_info` function you defined, and return the system information as a JSON-RPC response.
-
-### Testing within Langflow (if available)
-
-Some versions of Langflow might offer an integrated testing environment for MCP servers. Look for a "Test MCP" or "Client" tab within your deployed project's interface. This would allow you to send test requests directly from the Langflow UI.
+1.  Connect a `Chat Input` component to the `Input` of your `Agent` component (perception phase).
+2.  Connect the `Response` output of your `Agent` component to a `Chat Output` component (response phase).
+3.  Open the Langflow **Playground** (usually a chat interface on the right side).
+4.  Enter a prompt that would trigger your agentic workflow. For example, if you connected the `system_info_server.py`, you could ask: "What is the system information?" or "Tell me about the operating system."
+5.  Observe how your agentic workflow executes:
+   * **Perception**: The system receives your query
+   * **Planning**: The Agent (LLM) determines it needs to use an MCP tool
+   * **Action Execution**: The Agent calls the appropriate MCP tool through the MCP protocol
+   * **Response Synthesis**: The Agent creates a comprehensive answer based on the tool's output
+   * **Output**: The system presents the final response
+6.  You can also monitor the logs in the terminal where Langflow is running to see the MCP protocol communication in action.
 
 ## Conclusion
 
-By following these steps, you can successfully create a simple MCP using Langflow, exposing custom tools that can be consumed by any MCP-compatible client. Langflow's visual interface simplifies the process of building and managing complex MCP flows, making it an excellent tool for developing AI agents that interact with external systems.
+By following these steps, you've created a complete agentic workflow in Langflow where the LLM orchestrates specialized tools through the standardized MCP protocol. Understanding the distinction is important:
+
+- **The overall system is an agentic workflow** where the Agent (LLM) perceives, plans, executes actions, and responds
+- **MCP is the communication protocol** that enables standardized interaction between the LLM and external tools
+- **Each specialized capability is provided by an MCP server** that exposes specific functions
+
+This architecture allows you to build sophisticated AI applications where the LLM serves as the orchestrator of specialized tools, each handling specific tasks within your workflow. The MCP protocol ensures clean separation of concerns and standardized interfaces between components.
 
 ## References
 
-[1] Langflow Documentation: Use Langflow as an MCP server. Available at: [https://docs.langflow.org/mcp-server](https://docs.langflow.org/mcp-server)
-
-[2] Langflow Documentation: Deploying your flows. Available at: [https://docs.langflow.org/deployment](https://docs.langflow.org/deployment)
+[1] Langflow Documentation: Use Langflow as an MCP client. Available at: [https://docs.langflow.org/mcp-client](https://docs.langflow.org/mcp-client)
+[2] Model Context Protocol Specification: [https://modelcontextprotocol.io/](https://modelcontextprotocol.io/)
+[3] MCP Server Examples: [https://github.com/modelcontextprotocol](https://github.com/modelcontextprotocol)
