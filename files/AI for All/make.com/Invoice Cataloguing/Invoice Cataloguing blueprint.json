@@ -1,0 +1,1851 @@
+{
+    "name": "Integration Google Drive, OpenAI (ChatGPT, Whisper, DALL-E)",
+    "flow": [
+        {
+            "id": 1,
+            "module": "google-drive:watchFilesInAFolder",
+            "version": 4,
+            "parameters": {
+                "__IMTCONN__": 8594169,
+                "select": "modify",
+                "destination": "drive",
+                "mimeType": "all",
+                "limit": 1,
+                "folderId": "/1JBhqOqirzmsvaPGL1OwfZkeUddrhOpex/1TGktgQSIQSqsrPo8xHc8_SfZUllmq0Rc/1TJRKwDzhk3CVQIhvF_h_hAQCo9pMiqYM/1GfAxPt1HuJvs3JePGprREHKp7aOgIqCw"
+            },
+            "mapper": {},
+            "metadata": {
+                "designer": {
+                    "x": 0,
+                    "y": 0
+                },
+                "restore": {
+                    "parameters": {
+                        "__IMTCONN__": {
+                            "label": "My Google Restricted connection (diogoalvesderesende@gmail.com)",
+                            "data": {
+                                "scoped": "true",
+                                "connection": "google-restricted"
+                            }
+                        },
+                        "select": {
+                            "label": "By Modified Time"
+                        },
+                        "destination": {
+                            "label": "My Drive"
+                        },
+                        "mimeType": {
+                            "label": "All"
+                        },
+                        "folderId": {
+                            "path": [
+                                "AI for All",
+                                "make.com",
+                                "Invoice Cataloguing",
+                                "Invoices"
+                            ]
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "__IMTCONN__",
+                        "type": "account:google-restricted",
+                        "label": "Connection",
+                        "required": true
+                    },
+                    {
+                        "type": "hidden"
+                    },
+                    {
+                        "name": "select",
+                        "type": "select",
+                        "label": "Watch Files",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                "create",
+                                "modify"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "destination",
+                        "type": "select",
+                        "label": "Choose a Drive",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                "drive",
+                                "share",
+                                "team"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "mimeType",
+                        "type": "select",
+                        "label": "File Types to Watch",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                "all",
+                                "document",
+                                "spreadsheet",
+                                "slide",
+                                "drawing"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "type": "uinteger",
+                        "label": "Limit",
+                        "required": true
+                    },
+                    {
+                        "name": "folderId",
+                        "type": "folder",
+                        "label": "Select the Folder to be Watched",
+                        "required": true
+                    }
+                ]
+            }
+        },
+        {
+            "id": 2,
+            "module": "google-drive:getAFile",
+            "version": 4,
+            "parameters": {
+                "__IMTCONN__": 8594169
+            },
+            "mapper": {
+                "select": "map",
+                "formatDocuments": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                "formatSpreadsheets": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "formatPresentations": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                "formatDrawings": "image/jpeg",
+                "file": "{{1.id}}"
+            },
+            "metadata": {
+                "designer": {
+                    "x": 300,
+                    "y": 0
+                },
+                "restore": {
+                    "parameters": {
+                        "__IMTCONN__": {
+                            "label": "My Google Restricted connection (diogoalvesderesende@gmail.com)",
+                            "data": {
+                                "scoped": "true",
+                                "connection": "google-restricted"
+                            }
+                        }
+                    },
+                    "expect": {
+                        "select": {
+                            "label": "Enter manually"
+                        },
+                        "formatDocuments": {
+                            "label": "MS Word Document"
+                        },
+                        "formatSpreadsheets": {
+                            "label": "MS Excel"
+                        },
+                        "formatPresentations": {
+                            "label": "MS PowerPoint"
+                        },
+                        "formatDrawings": {
+                            "label": "JPEG"
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "__IMTCONN__",
+                        "type": "account:google-restricted",
+                        "label": "Connection",
+                        "required": true
+                    }
+                ],
+                "expect": [
+                    {
+                        "type": "hidden"
+                    },
+                    {
+                        "name": "select",
+                        "type": "select",
+                        "label": "Enter a File ID",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                "map",
+                                "value"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "formatDocuments",
+                        "type": "select",
+                        "label": "Convert Google Documents Files to Format",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                "application/pdf",
+                                "application/vnd.oasis.opendocument.text",
+                                "text/html",
+                                "text/plain",
+                                "application/rtf"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "formatSpreadsheets",
+                        "type": "select",
+                        "label": "Convert Google Spreadsheets Files to Format",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                "application/x-vnd.oasis.opendocument.spreadsheet",
+                                "application/pdf"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "formatPresentations",
+                        "type": "select",
+                        "label": "Convert Google Slides Files to Format",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                                "application/pdf"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "formatDrawings",
+                        "type": "select",
+                        "label": "Convert Google Drawings Files to Format",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                "image/jpeg",
+                                "image/png",
+                                "image/svg+xml",
+                                "application/pdf"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "file",
+                        "type": "text",
+                        "label": "File ID",
+                        "required": true
+                    }
+                ]
+            }
+        },
+        {
+            "id": 3,
+            "module": "openai-gpt-3:uploadFile",
+            "version": 1,
+            "parameters": {
+                "__IMTCONN__": 8598452
+            },
+            "mapper": {
+                "fileName": "{{2.name}}",
+                "fileData": "{{2.data}}",
+                "purpose": "assistants"
+            },
+            "metadata": {
+                "designer": {
+                    "x": 600,
+                    "y": 0
+                },
+                "restore": {
+                    "parameters": {
+                        "__IMTCONN__": {
+                            "label": "My OpenAI connection",
+                            "data": {
+                                "scoped": "true",
+                                "connection": "openai-gpt-3"
+                            }
+                        }
+                    },
+                    "expect": {
+                        "purpose": {
+                            "mode": "chose",
+                            "label": "Assistants"
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "__IMTCONN__",
+                        "type": "account:openai-gpt-3",
+                        "label": "Connection",
+                        "required": true
+                    }
+                ],
+                "expect": [
+                    {
+                        "name": "fileName",
+                        "type": "text",
+                        "label": "File Name",
+                        "required": true
+                    },
+                    {
+                        "name": "fileData",
+                        "type": "buffer",
+                        "label": "File Data",
+                        "required": true
+                    },
+                    {
+                        "name": "purpose",
+                        "type": "select",
+                        "label": "Purpose",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                "assistants",
+                                "vision",
+                                "fine-tune",
+                                "batch"
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "id": 4,
+            "module": "openai-gpt-3:createVectorStoreFileBatch",
+            "version": 1,
+            "parameters": {
+                "__IMTCONN__": 8598452
+            },
+            "mapper": {
+                "createMode": "choose",
+                "fileIds": "{{3.id}}",
+                "vectorStoreId": "vs_6836f94fa9fc8191932acd67e0d0a6fa"
+            },
+            "metadata": {
+                "designer": {
+                    "x": 900,
+                    "y": 0
+                },
+                "restore": {
+                    "parameters": {
+                        "__IMTCONN__": {
+                            "label": "My OpenAI connection",
+                            "data": {
+                                "scoped": "true",
+                                "connection": "openai-gpt-3"
+                            }
+                        }
+                    },
+                    "expect": {
+                        "createMode": {
+                            "mode": "chose",
+                            "label": "Choose Vector Store"
+                        },
+                        "fileIds": {
+                            "mode": "edit"
+                        },
+                        "vectorStoreId": {
+                            "mode": "chose",
+                            "label": "Invoices-Make"
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "__IMTCONN__",
+                        "type": "account:openai-gpt-3",
+                        "label": "Connection",
+                        "required": true
+                    }
+                ],
+                "expect": [
+                    {
+                        "name": "createMode",
+                        "type": "select",
+                        "label": "Batch Create Mode",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                "choose",
+                                "create"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "fileIds",
+                        "type": "select",
+                        "label": "File IDs",
+                        "required": true,
+                        "multiple": true
+                    },
+                    {
+                        "name": "vectorStoreId",
+                        "type": "select",
+                        "label": "Vector Store ID",
+                        "required": true
+                    }
+                ]
+            }
+        },
+        {
+            "id": 5,
+            "module": "openai-gpt-3:createModelResponse",
+            "version": 1,
+            "parameters": {
+                "__IMTCONN__": 8598452
+            },
+            "mapper": {
+                "model": "gpt-4.1-mini",
+                "inputContentType": "text",
+                "store": true,
+                "parallel_tool_calls": true,
+                "reasoning": {},
+                "format": {
+                    "type": "json_object"
+                },
+                "tool_choice": "file_search",
+                "tools": [
+                    {
+                        "type": "file_search",
+                        "vector_store_ids": "vs_6836f94fa9fc8191932acd67e0d0a6fa",
+                        "filters": {},
+                        "max_num_results": "1",
+                        "ranking_options": {}
+                    }
+                ],
+                "truncation": "auto",
+                "input": "Get the file id{{3.id}} witht he name {{3.filename}}.\n\nRetrieve the following elements: Date, Supplier, Name, Price, and currency used.\n\nExample of the expectecd json output format:\n[\n      {  \n          \"Date\": \"2025-02-18\",\n          \"Supplier\": \"make.com\",\n          \"Price\": 9.99,\n          \"Currency\": \"€\"\n      }\n]"
+            },
+            "metadata": {
+                "designer": {
+                    "x": 1200,
+                    "y": 0
+                },
+                "restore": {
+                    "parameters": {
+                        "__IMTCONN__": {
+                            "label": "My OpenAI connection",
+                            "data": {
+                                "scoped": "true",
+                                "connection": "openai-gpt-3"
+                            }
+                        }
+                    },
+                    "expect": {
+                        "model": {
+                            "mode": "chose",
+                            "label": "gpt-4.1-mini (system)"
+                        },
+                        "inputContentType": {
+                            "mode": "chose",
+                            "label": "Text prompt"
+                        },
+                        "store": {
+                            "mode": "chose"
+                        },
+                        "parallel_tool_calls": {
+                            "mode": "chose"
+                        },
+                        "reasoning": {
+                            "nested": {
+                                "effort": {
+                                    "mode": "chose",
+                                    "label": "Empty"
+                                },
+                                "summary": {
+                                    "mode": "chose",
+                                    "label": "Empty"
+                                }
+                            }
+                        },
+                        "format": {
+                            "nested": {
+                                "type": {
+                                    "mode": "chose",
+                                    "label": "JSON object"
+                                }
+                            }
+                        },
+                        "tool_choice": {
+                            "mode": "chose",
+                            "label": "File search"
+                        },
+                        "tools": {
+                            "mode": "chose",
+                            "items": [
+                                {
+                                    "type": {
+                                        "mode": "chose",
+                                        "label": "File search"
+                                    },
+                                    "vector_store_ids": {
+                                        "mode": "chose",
+                                        "label": "Invoices-Make"
+                                    },
+                                    "filters": {
+                                        "nested": {
+                                            "type": {
+                                                "mode": "chose",
+                                                "label": "Empty"
+                                            }
+                                        }
+                                    },
+                                    "ranking_options": {
+                                        "nested": {
+                                            "ranker": {
+                                                "mode": "chose",
+                                                "label": "Empty"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        "truncation": {
+                            "mode": "chose",
+                            "label": "Auto"
+                        },
+                        "include": {
+                            "mode": "chose"
+                        },
+                        "metadata": {
+                            "mode": "chose"
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "__IMTCONN__",
+                        "type": "account:openai-gpt-3",
+                        "label": "Connection",
+                        "required": true
+                    }
+                ],
+                "expect": [
+                    {
+                        "name": "model",
+                        "type": "select",
+                        "label": "Model",
+                        "required": true
+                    },
+                    {
+                        "name": "inputContentType",
+                        "type": "select",
+                        "label": "Prompt Type",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                "text",
+                                "items"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "max_output_tokens",
+                        "type": "integer",
+                        "label": "Max Output Tokens"
+                    },
+                    {
+                        "name": "temperature",
+                        "type": "number",
+                        "label": "Temperature",
+                        "validate": {
+                            "max": 2,
+                            "min": 0
+                        }
+                    },
+                    {
+                        "name": "top_p",
+                        "type": "number",
+                        "label": "Top P"
+                    },
+                    {
+                        "name": "store",
+                        "type": "boolean",
+                        "label": "Store"
+                    },
+                    {
+                        "name": "previous_response_id",
+                        "type": "text",
+                        "label": "Previous Response ID"
+                    },
+                    {
+                        "name": "parallel_tool_calls",
+                        "type": "boolean",
+                        "label": "Parallel Tool Calls"
+                    },
+                    {
+                        "name": "instructions",
+                        "type": "text",
+                        "label": "Instructions"
+                    },
+                    {
+                        "name": "reasoning",
+                        "type": "collection",
+                        "label": "Reasoning",
+                        "spec": [
+                            {
+                                "name": "effort",
+                                "type": "select",
+                                "label": "Effort",
+                                "validate": {
+                                    "enum": [
+                                        "low",
+                                        "medium",
+                                        "high"
+                                    ]
+                                }
+                            },
+                            {
+                                "name": "summary",
+                                "type": "select",
+                                "label": "Summary",
+                                "validate": {
+                                    "enum": [
+                                        "auto",
+                                        "concise",
+                                        "detailed"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "name": "format",
+                        "type": "collection",
+                        "label": "Format",
+                        "spec": [
+                            {
+                                "name": "type",
+                                "type": "select",
+                                "label": "Type",
+                                "validate": {
+                                    "enum": [
+                                        "text",
+                                        "json_schema",
+                                        "json_object"
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "name": "tool_choice",
+                        "type": "select",
+                        "label": "Tool Choice",
+                        "validate": {
+                            "enum": [
+                                "none",
+                                "auto",
+                                "required",
+                                "file_search",
+                                "web_search_preview",
+                                "computer_use_preview",
+                                "function"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "tools",
+                        "type": "array",
+                        "label": "Tools",
+                        "spec": {
+                            "spec": [
+                                {
+                                    "name": "type",
+                                    "type": "select",
+                                    "label": "Type",
+                                    "options": [
+                                        {
+                                            "label": "File search",
+                                            "value": "file_search",
+                                            "nested": [
+                                                {
+                                                    "help": "The IDs of the vector stores to search.",
+                                                    "name": "vector_store_ids",
+                                                    "type": "select",
+                                                    "label": "Vector Store IDs",
+                                                    "options": "rpc://openai-gpt-3/1/getVectorStores",
+                                                    "required": true
+                                                },
+                                                {
+                                                    "help": "A filter to apply based on file attributes.",
+                                                    "name": "filters",
+                                                    "spec": [
+                                                        {
+                                                            "name": "type",
+                                                            "type": "select",
+                                                            "label": "Type",
+                                                            "options": [
+                                                                {
+                                                                    "label": "Equals",
+                                                                    "value": "eq",
+                                                                    "nested": [
+                                                                        {
+                                                                            "help": "The key to compare against the value.",
+                                                                            "name": "key",
+                                                                            "type": "text",
+                                                                            "label": "Key",
+                                                                            "required": true
+                                                                        },
+                                                                        {
+                                                                            "help": "The value to compare against the attribute key",
+                                                                            "name": "value",
+                                                                            "type": "any",
+                                                                            "label": "Value",
+                                                                            "required": true
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "label": "Not equal",
+                                                                    "value": "ne",
+                                                                    "nested": [
+                                                                        {
+                                                                            "help": "The key to compare against the value.",
+                                                                            "name": "key",
+                                                                            "type": "text",
+                                                                            "label": "Key",
+                                                                            "required": true
+                                                                        },
+                                                                        {
+                                                                            "help": "The value to compare against the attribute key",
+                                                                            "name": "value",
+                                                                            "type": "any",
+                                                                            "label": "Value",
+                                                                            "required": true
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "label": "Greater than",
+                                                                    "value": "gt",
+                                                                    "nested": [
+                                                                        {
+                                                                            "help": "The key to compare against the value.",
+                                                                            "name": "key",
+                                                                            "type": "text",
+                                                                            "label": "Key",
+                                                                            "required": true
+                                                                        },
+                                                                        {
+                                                                            "help": "The value to compare against the attribute key",
+                                                                            "name": "value",
+                                                                            "type": "any",
+                                                                            "label": "Value",
+                                                                            "required": true
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "label": "Greater than or equal",
+                                                                    "value": "gte",
+                                                                    "nested": [
+                                                                        {
+                                                                            "help": "The key to compare against the value.",
+                                                                            "name": "key",
+                                                                            "type": "text",
+                                                                            "label": "Key",
+                                                                            "required": true
+                                                                        },
+                                                                        {
+                                                                            "help": "The value to compare against the attribute key",
+                                                                            "name": "value",
+                                                                            "type": "any",
+                                                                            "label": "Value",
+                                                                            "required": true
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "label": "Less than",
+                                                                    "value": "lt",
+                                                                    "nested": [
+                                                                        {
+                                                                            "help": "The key to compare against the value.",
+                                                                            "name": "key",
+                                                                            "type": "text",
+                                                                            "label": "Key",
+                                                                            "required": true
+                                                                        },
+                                                                        {
+                                                                            "help": "The value to compare against the attribute key",
+                                                                            "name": "value",
+                                                                            "type": "any",
+                                                                            "label": "Value",
+                                                                            "required": true
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "label": "Less than or equal",
+                                                                    "value": "lte",
+                                                                    "nested": [
+                                                                        {
+                                                                            "help": "The key to compare against the value.",
+                                                                            "name": "key",
+                                                                            "type": "text",
+                                                                            "label": "Key",
+                                                                            "required": true
+                                                                        },
+                                                                        {
+                                                                            "help": "The value to compare against the attribute key",
+                                                                            "name": "value",
+                                                                            "type": "any",
+                                                                            "label": "Value",
+                                                                            "required": true
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "label": "Compound filter [and]",
+                                                                    "value": "and",
+                                                                    "nested": [
+                                                                        {
+                                                                            "name": "filters",
+                                                                            "spec": {
+                                                                                "spec": [
+                                                                                    {
+                                                                                        "name": "type",
+                                                                                        "type": "select",
+                                                                                        "label": "Type",
+                                                                                        "options": [
+                                                                                            {
+                                                                                                "label": "Equals",
+                                                                                                "value": "eq"
+                                                                                            },
+                                                                                            {
+                                                                                                "label": "Not equal",
+                                                                                                "value": "ne"
+                                                                                            },
+                                                                                            {
+                                                                                                "label": "Greater than",
+                                                                                                "value": "gt"
+                                                                                            },
+                                                                                            {
+                                                                                                "label": "Greater than or equal",
+                                                                                                "value": "gte"
+                                                                                            },
+                                                                                            {
+                                                                                                "label": "Less than",
+                                                                                                "value": "lt"
+                                                                                            },
+                                                                                            {
+                                                                                                "label": "Less than or equal",
+                                                                                                "value": "lte"
+                                                                                            }
+                                                                                        ],
+                                                                                        "required": true
+                                                                                    },
+                                                                                    {
+                                                                                        "help": "The key to compare against the value.",
+                                                                                        "name": "key",
+                                                                                        "type": "text",
+                                                                                        "label": "Key",
+                                                                                        "required": true
+                                                                                    },
+                                                                                    {
+                                                                                        "help": "The value to compare against the attribute key",
+                                                                                        "name": "value",
+                                                                                        "type": "any",
+                                                                                        "label": "Value",
+                                                                                        "required": true
+                                                                                    }
+                                                                                ],
+                                                                                "type": "collection",
+                                                                                "label": "Filter"
+                                                                            },
+                                                                            "type": "array",
+                                                                            "label": "Filters",
+                                                                            "labels": {
+                                                                                "add": "Add filter"
+                                                                            },
+                                                                            "required": true
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                {
+                                                                    "label": "Compound filter [or]",
+                                                                    "value": "or",
+                                                                    "nested": [
+                                                                        {
+                                                                            "name": "filters",
+                                                                            "spec": {
+                                                                                "spec": [
+                                                                                    {
+                                                                                        "name": "type",
+                                                                                        "type": "select",
+                                                                                        "label": "Type",
+                                                                                        "options": [
+                                                                                            {
+                                                                                                "label": "Equals",
+                                                                                                "value": "eq"
+                                                                                            },
+                                                                                            {
+                                                                                                "label": "Not equal",
+                                                                                                "value": "ne"
+                                                                                            },
+                                                                                            {
+                                                                                                "label": "Greater than",
+                                                                                                "value": "gt"
+                                                                                            },
+                                                                                            {
+                                                                                                "label": "Greater than or equal",
+                                                                                                "value": "gte"
+                                                                                            },
+                                                                                            {
+                                                                                                "label": "Less than",
+                                                                                                "value": "lt"
+                                                                                            },
+                                                                                            {
+                                                                                                "label": "Less than or equal",
+                                                                                                "value": "lte"
+                                                                                            }
+                                                                                        ],
+                                                                                        "required": true
+                                                                                    },
+                                                                                    {
+                                                                                        "help": "The key to compare against the value.",
+                                                                                        "name": "key",
+                                                                                        "type": "text",
+                                                                                        "label": "Key",
+                                                                                        "required": true
+                                                                                    },
+                                                                                    {
+                                                                                        "help": "The value to compare against the attribute key",
+                                                                                        "name": "value",
+                                                                                        "type": "any",
+                                                                                        "label": "Value",
+                                                                                        "required": true
+                                                                                    }
+                                                                                ],
+                                                                                "type": "collection",
+                                                                                "label": "Filter"
+                                                                            },
+                                                                            "type": "array",
+                                                                            "label": "Filters",
+                                                                            "labels": {
+                                                                                "add": "Add filter"
+                                                                            },
+                                                                            "required": true
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    ],
+                                                    "type": "collection",
+                                                    "label": "Filters"
+                                                },
+                                                {
+                                                    "name": "max_num_results",
+                                                    "type": "integer",
+                                                    "label": "Max Results Number",
+                                                    "validate": {
+                                                        "max": 50,
+                                                        "min": 1
+                                                    }
+                                                },
+                                                {
+                                                    "help": "Ranking options for search.",
+                                                    "name": "ranking_options",
+                                                    "spec": [
+                                                        {
+                                                            "help": "The ranker to use for the file search.",
+                                                            "name": "ranker",
+                                                            "type": "select",
+                                                            "label": "Ranker",
+                                                            "options": [
+                                                                {
+                                                                    "label": "auto",
+                                                                    "value": "auto"
+                                                                },
+                                                                {
+                                                                    "label": "default-2024-08-21",
+                                                                    "value": "default-2024-08-21"
+                                                                },
+                                                                {
+                                                                    "label": "default-2024-11-15",
+                                                                    "value": "default-2024-11-15"
+                                                                }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "help": "The score threshold for the file search. Numbers closer to `1` will attempt to return only the most relevant results, but may return fewer results.",
+                                                            "name": "score_threshold",
+                                                            "type": "number",
+                                                            "label": "Score Threshold",
+                                                            "validate": {
+                                                                "max": 1,
+                                                                "min": 0
+                                                            }
+                                                        }
+                                                    ],
+                                                    "type": "collection",
+                                                    "label": "Ranking Options"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "label": "Function",
+                                            "value": "function",
+                                            "nested": [
+                                                {
+                                                    "help": "The name of the function to call.",
+                                                    "name": "name",
+                                                    "type": "text",
+                                                    "label": "Name",
+                                                    "required": true
+                                                },
+                                                {
+                                                    "help": "A JSON schema object describing the parameters of the function.",
+                                                    "name": "parameters",
+                                                    "type": "json",
+                                                    "label": "Parameters",
+                                                    "required": true
+                                                },
+                                                {
+                                                    "help": "Whether to enforce strict parameter validation.",
+                                                    "name": "strict",
+                                                    "type": "boolean",
+                                                    "label": "Strict",
+                                                    "default": true,
+                                                    "required": true
+                                                },
+                                                {
+                                                    "help": "A description of the function.",
+                                                    "name": "description",
+                                                    "type": "text",
+                                                    "label": "Description"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "label": "Computer use preview",
+                                            "value": "computer_use_preview",
+                                            "nested": [
+                                                {
+                                                    "help": "The height of the computer display.",
+                                                    "name": "display_height",
+                                                    "type": "number",
+                                                    "label": "Display Height",
+                                                    "required": true
+                                                },
+                                                {
+                                                    "help": "The width of the computer display.",
+                                                    "name": "display_width",
+                                                    "type": "number",
+                                                    "label": "Display Width",
+                                                    "required": true
+                                                },
+                                                {
+                                                    "help": "The type of computer environment to control.",
+                                                    "name": "environment",
+                                                    "type": "select",
+                                                    "label": "Environment",
+                                                    "options": [
+                                                        {
+                                                            "label": "Windows",
+                                                            "value": "windows"
+                                                        },
+                                                        {
+                                                            "label": "Mac",
+                                                            "value": "mac"
+                                                        },
+                                                        {
+                                                            "label": "Linux",
+                                                            "value": "linux"
+                                                        },
+                                                        {
+                                                            "label": "Browser",
+                                                            "value": "browser"
+                                                        }
+                                                    ],
+                                                    "required": true
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "label": "Web search preview",
+                                            "value": "web_search_preview",
+                                            "nested": [
+                                                {
+                                                    "help": "High level guidance for the amount of context window space to use for the search. Medium is the default value.",
+                                                    "name": "search_context_size",
+                                                    "type": "select",
+                                                    "label": "Search Context Size",
+                                                    "options": [
+                                                        {
+                                                            "label": "Low",
+                                                            "value": "low"
+                                                        },
+                                                        {
+                                                            "label": "Medium",
+                                                            "value": "medium"
+                                                        },
+                                                        {
+                                                            "label": "High",
+                                                            "value": "high"
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    "help": "Approximate location parameters for the search.",
+                                                    "name": "user_location",
+                                                    "spec": [
+                                                        {
+                                                            "help": "The type of location approximation.",
+                                                            "name": "type",
+                                                            "type": "select",
+                                                            "label": "Type",
+                                                            "options": [
+                                                                {
+                                                                    "label": "Approximate",
+                                                                    "value": "approximate"
+                                                                }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "help": "The city of the user, e.g. `San Francisco`.",
+                                                            "name": "city",
+                                                            "type": "text",
+                                                            "label": "City"
+                                                        },
+                                                        {
+                                                            "help": "The two-letter ISO country code of the user, e.g. `US`.",
+                                                            "name": "country",
+                                                            "type": "select",
+                                                            "label": "Country",
+                                                            "options": "rpc://openai-gpt-3/1/getCountryCodes"
+                                                        },
+                                                        {
+                                                            "help": "The region of the user, e.g. `California`.",
+                                                            "name": "region",
+                                                            "type": "text",
+                                                            "label": "Region"
+                                                        },
+                                                        {
+                                                            "help": "The timezone of the user, e.g. `America/Los_Angeles`.",
+                                                            "name": "timezone",
+                                                            "type": "timezone",
+                                                            "label": "Timezone"
+                                                        }
+                                                    ],
+                                                    "type": "collection",
+                                                    "label": "User Location"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "label": "Web search preview (2025_03_11)",
+                                            "value": "web_search_preview_2025_03_11",
+                                            "nested": [
+                                                {
+                                                    "help": "High level guidance for the amount of context window space to use for the search. Medium is the default value.",
+                                                    "name": "search_context_size",
+                                                    "type": "select",
+                                                    "label": "Search Context Size",
+                                                    "options": [
+                                                        {
+                                                            "label": "Low",
+                                                            "value": "low"
+                                                        },
+                                                        {
+                                                            "label": "Medium",
+                                                            "value": "medium"
+                                                        },
+                                                        {
+                                                            "label": "High",
+                                                            "value": "high"
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    "help": "Approximate location parameters for the search.",
+                                                    "name": "user_location",
+                                                    "spec": [
+                                                        {
+                                                            "help": "The type of location approximation.",
+                                                            "name": "type",
+                                                            "type": "select",
+                                                            "label": "Type",
+                                                            "options": [
+                                                                {
+                                                                    "label": "Approximate",
+                                                                    "value": "approximate"
+                                                                }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "help": "The city of the user, e.g. `San Francisco`.",
+                                                            "name": "city",
+                                                            "type": "text",
+                                                            "label": "City"
+                                                        },
+                                                        {
+                                                            "help": "The two-letter ISO country code of the user, e.g. `US`.",
+                                                            "name": "country",
+                                                            "type": "select",
+                                                            "label": "Country",
+                                                            "options": "rpc://openai-gpt-3/1/getCountryCodes"
+                                                        },
+                                                        {
+                                                            "help": "The region of the user, e.g. `California`.",
+                                                            "name": "region",
+                                                            "type": "text",
+                                                            "label": "Region"
+                                                        },
+                                                        {
+                                                            "help": "The timezone of the user, e.g. `America/Los_Angeles`.",
+                                                            "name": "timezone",
+                                                            "type": "timezone",
+                                                            "label": "Timezone"
+                                                        }
+                                                    ],
+                                                    "type": "collection",
+                                                    "label": "User Location"
+                                                }
+                                            ]
+                                        }
+                                    ],
+                                    "required": true
+                                }
+                            ],
+                            "type": "collection",
+                            "label": "Tool",
+                            "name": "value"
+                        }
+                    },
+                    {
+                        "name": "truncation",
+                        "type": "select",
+                        "label": "Truncation",
+                        "validate": {
+                            "enum": [
+                                "auto",
+                                "disabled"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "include",
+                        "type": "select",
+                        "label": "Include",
+                        "multiple": true,
+                        "validate": {
+                            "enum": [
+                                "file_search_call.results",
+                                "message.input_image.image_url",
+                                "computer_call_output.output.image_url"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "metadata",
+                        "type": "array",
+                        "label": "Metadata",
+                        "spec": {
+                            "spec": [
+                                {
+                                    "name": "key",
+                                    "type": "text",
+                                    "label": "Key"
+                                },
+                                {
+                                    "name": "value",
+                                    "type": "text",
+                                    "label": "Value"
+                                }
+                            ],
+                            "type": "collection",
+                            "label": "Metadata",
+                            "name": "value"
+                        }
+                    },
+                    {
+                        "name": "input",
+                        "type": "text",
+                        "label": "Prompt",
+                        "required": true
+                    }
+                ],
+                "advanced": true
+            }
+        },
+        {
+            "id": 6,
+            "module": "builtin:BasicFeeder",
+            "version": 1,
+            "parameters": {},
+            "mapper": {
+                "array": "{{last(5.output)}}"
+            },
+            "metadata": {
+                "designer": {
+                    "x": 1500,
+                    "y": 0
+                },
+                "restore": {
+                    "expect": {
+                        "array": {
+                            "mode": "edit"
+                        }
+                    }
+                },
+                "expect": [
+                    {
+                        "name": "array",
+                        "type": "array",
+                        "label": "Array",
+                        "mode": "edit",
+                        "spec": []
+                    }
+                ]
+            }
+        },
+        {
+            "id": 7,
+            "module": "json:ParseJSON",
+            "version": 1,
+            "parameters": {
+                "type": 296641
+            },
+            "mapper": {
+                "json": "{{6.content[].text}}"
+            },
+            "metadata": {
+                "designer": {
+                    "x": 1800,
+                    "y": 0
+                },
+                "restore": {
+                    "parameters": {
+                        "type": {
+                            "label": "Invoices"
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "type",
+                        "type": "udt",
+                        "label": "Data structure"
+                    }
+                ],
+                "expect": [
+                    {
+                        "name": "json",
+                        "type": "text",
+                        "label": "JSON string",
+                        "required": true
+                    }
+                ],
+                "interface": [
+                    {
+                        "name": "Date",
+                        "label": null,
+                        "help": "",
+                        "type": "date",
+                        "required": false
+                    },
+                    {
+                        "name": "Supplier",
+                        "label": null,
+                        "help": "",
+                        "type": "text",
+                        "default": null,
+                        "required": false,
+                        "multiline": false
+                    },
+                    {
+                        "name": "Price",
+                        "label": null,
+                        "help": "",
+                        "type": "number",
+                        "default": null,
+                        "required": false
+                    },
+                    {
+                        "name": "Currency",
+                        "label": null,
+                        "help": "",
+                        "type": "text",
+                        "default": null,
+                        "required": false,
+                        "multiline": false
+                    }
+                ]
+            }
+        },
+        {
+            "id": 8,
+            "module": "google-sheets:addRow",
+            "version": 2,
+            "parameters": {
+                "__IMTCONN__": 8592679
+            },
+            "mapper": {
+                "mode": "select",
+                "insertUnformatted": false,
+                "valueInputOption": "USER_ENTERED",
+                "insertDataOption": "INSERT_ROWS",
+                "from": "drive",
+                "spreadsheetId": "/1JBhqOqirzmsvaPGL1OwfZkeUddrhOpex/1TGktgQSIQSqsrPo8xHc8_SfZUllmq0Rc/1TJRKwDzhk3CVQIhvF_h_hAQCo9pMiqYM/1C9v6qLbqYXjK9xfAXjAxPCPk5qBuX8uQmLMQBDDweOE",
+                "sheetId": "Sheet1",
+                "includesHeaders": true,
+                "values": {
+                    "0": "{{7.Date}}",
+                    "1": "{{7.Supplier}}",
+                    "2": "{{7.Price}}",
+                    "3": "{{7.Currency}}"
+                }
+            },
+            "metadata": {
+                "designer": {
+                    "x": 2100,
+                    "y": 0
+                },
+                "restore": {
+                    "parameters": {
+                        "__IMTCONN__": {
+                            "label": "My Google connection (diogoalvesderesende@gmail.com)",
+                            "data": {
+                                "scoped": "true",
+                                "connection": "google"
+                            }
+                        }
+                    },
+                    "expect": {
+                        "mode": {
+                            "label": "Search by path"
+                        },
+                        "insertUnformatted": {
+                            "mode": "chose"
+                        },
+                        "valueInputOption": {
+                            "mode": "chose",
+                            "label": "User entered"
+                        },
+                        "insertDataOption": {
+                            "mode": "chose",
+                            "label": "Insert rows"
+                        },
+                        "from": {
+                            "label": "My Drive"
+                        },
+                        "spreadsheetId": {
+                            "path": [
+                                "AI for All",
+                                "make.com",
+                                "Invoice Cataloguing",
+                                "Invoice Catalogue"
+                            ]
+                        },
+                        "sheetId": {
+                            "label": "Sheet1"
+                        },
+                        "includesHeaders": {
+                            "nested": [
+                                {
+                                    "name": "values",
+                                    "label": "Values",
+                                    "type": "collection",
+                                    "spec": [
+                                        {
+                                            "name": "0",
+                                            "label": "Date (A)",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "name": "1",
+                                            "label": "Supplier (B)",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "name": "2",
+                                            "label": "Price (C)",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "name": "3",
+                                            "label": "Currency (D)",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "name": "4",
+                                            "label": "(E)",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "name": "5",
+                                            "label": "(F)",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "name": "6",
+                                            "label": "(G)",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "name": "7",
+                                            "label": "(H)",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "name": "8",
+                                            "label": "(I)",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "name": "9",
+                                            "label": "(J)",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "name": "10",
+                                            "label": "(K)",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "name": "11",
+                                            "label": "(L)",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "name": "12",
+                                            "label": "(M)",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "name": "13",
+                                            "label": "(N)",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "name": "14",
+                                            "label": "(O)",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "name": "15",
+                                            "label": "(P)",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "name": "16",
+                                            "label": "(Q)",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "name": "17",
+                                            "label": "(R)",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "name": "18",
+                                            "label": "(S)",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "name": "19",
+                                            "label": "(T)",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "name": "20",
+                                            "label": "(U)",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "name": "21",
+                                            "label": "(V)",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "name": "22",
+                                            "label": "(W)",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "name": "23",
+                                            "label": "(X)",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "name": "24",
+                                            "label": "(Y)",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "name": "25",
+                                            "label": "(Z)",
+                                            "type": "text"
+                                        }
+                                    ]
+                                }
+                            ],
+                            "label": "Yes"
+                        }
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "__IMTCONN__",
+                        "type": "account:google",
+                        "label": "Connection",
+                        "required": true
+                    }
+                ],
+                "expect": [
+                    {
+                        "name": "mode",
+                        "type": "select",
+                        "label": "Search Method",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                "select",
+                                "fromAll",
+                                "map"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "insertUnformatted",
+                        "type": "boolean",
+                        "label": "Unformatted",
+                        "required": true
+                    },
+                    {
+                        "name": "valueInputOption",
+                        "type": "select",
+                        "label": "Value input option",
+                        "validate": {
+                            "enum": [
+                                "USER_ENTERED",
+                                "RAW"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "insertDataOption",
+                        "type": "select",
+                        "label": "Insert data option",
+                        "validate": {
+                            "enum": [
+                                "INSERT_ROWS",
+                                "OVERWRITE"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "from",
+                        "type": "select",
+                        "label": "Drive",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                "drive",
+                                "share",
+                                "team"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "spreadsheetId",
+                        "type": "file",
+                        "label": "Spreadsheet ID",
+                        "required": true
+                    },
+                    {
+                        "name": "sheetId",
+                        "type": "select",
+                        "label": "Sheet Name",
+                        "required": true
+                    },
+                    {
+                        "name": "includesHeaders",
+                        "type": "select",
+                        "label": "Table contains headers",
+                        "required": true,
+                        "validate": {
+                            "enum": [
+                                true,
+                                false
+                            ]
+                        }
+                    },
+                    {
+                        "name": "values",
+                        "type": "collection",
+                        "label": "Values",
+                        "spec": [
+                            {
+                                "name": "0",
+                                "type": "text",
+                                "label": "Date (A)"
+                            },
+                            {
+                                "name": "1",
+                                "type": "text",
+                                "label": "Supplier (B)"
+                            },
+                            {
+                                "name": "2",
+                                "type": "text",
+                                "label": "Price (C)"
+                            },
+                            {
+                                "name": "3",
+                                "type": "text",
+                                "label": "Currency (D)"
+                            },
+                            {
+                                "name": "4",
+                                "type": "text",
+                                "label": "(E)"
+                            },
+                            {
+                                "name": "5",
+                                "type": "text",
+                                "label": "(F)"
+                            },
+                            {
+                                "name": "6",
+                                "type": "text",
+                                "label": "(G)"
+                            },
+                            {
+                                "name": "7",
+                                "type": "text",
+                                "label": "(H)"
+                            },
+                            {
+                                "name": "8",
+                                "type": "text",
+                                "label": "(I)"
+                            },
+                            {
+                                "name": "9",
+                                "type": "text",
+                                "label": "(J)"
+                            },
+                            {
+                                "name": "10",
+                                "type": "text",
+                                "label": "(K)"
+                            },
+                            {
+                                "name": "11",
+                                "type": "text",
+                                "label": "(L)"
+                            },
+                            {
+                                "name": "12",
+                                "type": "text",
+                                "label": "(M)"
+                            },
+                            {
+                                "name": "13",
+                                "type": "text",
+                                "label": "(N)"
+                            },
+                            {
+                                "name": "14",
+                                "type": "text",
+                                "label": "(O)"
+                            },
+                            {
+                                "name": "15",
+                                "type": "text",
+                                "label": "(P)"
+                            },
+                            {
+                                "name": "16",
+                                "type": "text",
+                                "label": "(Q)"
+                            },
+                            {
+                                "name": "17",
+                                "type": "text",
+                                "label": "(R)"
+                            },
+                            {
+                                "name": "18",
+                                "type": "text",
+                                "label": "(S)"
+                            },
+                            {
+                                "name": "19",
+                                "type": "text",
+                                "label": "(T)"
+                            },
+                            {
+                                "name": "20",
+                                "type": "text",
+                                "label": "(U)"
+                            },
+                            {
+                                "name": "21",
+                                "type": "text",
+                                "label": "(V)"
+                            },
+                            {
+                                "name": "22",
+                                "type": "text",
+                                "label": "(W)"
+                            },
+                            {
+                                "name": "23",
+                                "type": "text",
+                                "label": "(X)"
+                            },
+                            {
+                                "name": "24",
+                                "type": "text",
+                                "label": "(Y)"
+                            },
+                            {
+                                "name": "25",
+                                "type": "text",
+                                "label": "(Z)"
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+    ],
+    "metadata": {
+        "instant": false,
+        "version": 1,
+        "scenario": {
+            "roundtrips": 1,
+            "maxErrors": 3,
+            "autoCommit": true,
+            "autoCommitTriggerLast": true,
+            "sequential": false,
+            "slots": null,
+            "confidential": false,
+            "dataloss": false,
+            "dlq": false,
+            "freshVariables": false
+        },
+        "designer": {
+            "orphans": []
+        },
+        "zone": "eu2.make.com",
+        "notes": []
+    }
+}

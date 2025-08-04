@@ -234,11 +234,11 @@ You need to add three separate `MCP Tools` components, one for each external MCP
 1.  Drag and drop an `MCP Tools` component onto the canvas.
 2.  Rename it to "Web Scraping Tools" for clarity.
 3.  Double-click to configure:
-    *   Click **"Add MCP Server"**.
-    *   Select **STDIO** mode.
-    *   **Name**: `WebScrapingServer`
-    *   **Command**: `python /absolute/path/to/your/web_scraping_mcp_server.py`
-    *   Click **"Add Server"**.
+    - Click **"Add MCP Server"**.
+    - Select **STDIO** mode.
+    - **Name**: `WebScrapingServer`
+    - **Command**: `python /absolute/path/to/your/web_scraping_mcp_server.py`
+    - Click **"Add Server"**.
 4.  In the **Tool** field, select `scrape_product_price` (or leave blank for all tools).
 5.  Enable **Tool Mode** in the component's header menu.
 
@@ -247,9 +247,9 @@ You need to add three separate `MCP Tools` components, one for each external MCP
 1.  Add another `MCP Tools` component.
 2.  Rename it to "Data Processing Tools".
 3.  Configure:
-    *   **Name**: `DataProcessingServer`
-    *   **Command**: `python /absolute/path/to/your/data_processing_mcp_server.py`
-    *   **Tool**: `process_scraped_data`
+    - **Name**: `DataProcessingServer`
+    - **Command**: `python /absolute/path/to/your/data_processing_mcp_server.py`
+    - **Tool**: `process_scraped_data`
 4.  Enable **Tool Mode**.
 
 #### 2.2.3 Price Comparison MCP Tools Component
@@ -257,34 +257,36 @@ You need to add three separate `MCP Tools` components, one for each external MCP
 1.  Add a third `MCP Tools` component.
 2.  Rename it to "Price Comparison Tools".
 3.  Configure:
-    *   **Name**: `PriceComparisonServer`
-    *   **Command**: `python /absolute/path/to/your/price_comparison_mcp_server.py`
-    *   **Tool**: `find_lowest_price`
+    - **Name**: `PriceComparisonServer`
+    - **Command**: `python /absolute/path/to/your/price_comparison_mcp_server.py`
+    - **Tool**: `find_lowest_price`
 4.  Enable **Tool Mode**.
 
 ### 2.3 Configure the Agent (The "Brain" of Your Agentic Workflow)
 
 1.  Configure the `Agent` component, which acts as the central orchestrator of your agentic workflow:
-    *   **Model Provider**: Select your LLM provider (e.g., `OpenAI`).
-    *   **Model Name**: Choose a suitable model (e.g., `gpt-4-turbo`).
-    *   **API Key**: Provide your API key.
-    *   **Agent Instructions**: Provide clear instructions for orchestrating the workflow:
-        ```
-        You are a price comparison assistant coordinating an agentic workflow. When a user asks for product price comparisons:
 
-        1. PLANNING: Analyze the user's request to understand the product they want to compare
-        2. TOOL SELECTION: Use these MCP tools in sequence:
-           a. First, use scrape_product_price to gather raw data from multiple websites
-           b. Next, use process_scraped_data to clean and standardize the results
-           c. Finally, use find_lowest_price to identify the best deal
-        3. SYNTHESIS: Present a comprehensive answer including:
-           - The lowest price and where to find it
-           - Price comparison across all sources
-           - Any relevant shipping or availability details
-           - Savings compared to the highest price
+    - **Model Provider**: Select your LLM provider (e.g., `OpenAI`).
+    - **Model Name**: Choose a suitable model (e.g., `gpt-4-turbo`).
+    - **API Key**: Provide your API key.
+    - **Agent Instructions**: Provide clear instructions for orchestrating the workflow:
 
-        Remember that you are orchestrating these specialized tools via the MCP protocol, and each tool handles a specific part of the workflow.
-        ```
+      ```
+      You are a price comparison assistant coordinating an agentic workflow. When a user asks for product price comparisons:
+
+      1. PLANNING: Analyze the user's request to understand the product they want to compare
+      2. TOOL SELECTION: Use these MCP tools in sequence:
+         a. First, use scrape_product_price to gather raw data from multiple websites
+         b. Next, use process_scraped_data to clean and standardize the results
+         c. Finally, use find_lowest_price to identify the best deal
+      3. SYNTHESIS: Present a comprehensive answer including:
+         - The lowest price and where to find it
+         - Price comparison across all sources
+         - Any relevant shipping or availability details
+         - Savings compared to the highest price
+
+      Remember that you are orchestrating these specialized tools via the MCP protocol, and each tool handles a specific part of the workflow.
+      ```
 
 ### 2.4 Connect the Agentic Workflow Components
 
@@ -293,6 +295,7 @@ You need to add three separate `MCP Tools` components, one for each external MCP
 3.  Connect the `Response` output of the `Agent` component to the `Chat Output` (action/response phase).
 
 This connectivity represents the complete agentic workflow, where:
+
 - The user input enters the system via Chat Input (perception)
 - The Agent processes the input and plans necessary actions (reasoning/planning)
 - The Agent orchestrates the MCP tools in sequence (action execution via MCP)
@@ -304,14 +307,14 @@ This connectivity represents the complete agentic workflow, where:
 1.  Open the Langflow **Playground**.
 2.  Enter a query like: "Find the lowest price for a DJI Mavic Pro 4 across different websites."
 3.  Watch as the agentic workflow executes:
-    * **Perception**: The system receives your query about the DJI Mavic Pro 4
-    * **Planning**: The Agent (LLM) determines it needs to follow the defined workflow
-    * **Action Execution** (via MCP protocol):
-        * The Agent calls the web scraping MCP tool to gather raw price data
-        * The Agent then calls the data processing MCP tool to standardize the results
-        * Finally, the Agent calls the price comparison MCP tool to analyze and find the best deal
-    * **Response Synthesis**: The Agent creates a comprehensive answer based on all tool results
-    * **Output**: The system presents a clear comparison showing the lowest price, where to find it, and how much you'll save
+    - **Perception**: The system receives your query about the DJI Mavic Pro 4
+    - **Planning**: The Agent (LLM) determines it needs to follow the defined workflow
+    - **Action Execution** (via MCP protocol):
+      - The Agent calls the web scraping MCP tool to gather raw price data
+      - The Agent then calls the data processing MCP tool to standardize the results
+      - Finally, the Agent calls the price comparison MCP tool to analyze and find the best deal
+    - **Response Synthesis**: The Agent creates a comprehensive answer based on all tool results
+    - **Output**: The system presents a clear comparison showing the lowest price, where to find it, and how much you'll save
 
 ## Implementation Best Practices
 
@@ -319,30 +322,30 @@ Based on MCP agent best practices:
 
 ### Technical Implementation Notes
 
-*   **Absolute Paths**: Use absolute paths to your MCP server Python files in the **Command** fields.
-*   **Dependencies**: Ensure that `fastmcp` and any other required libraries are installed in the Python environment where Langflow is running.
-*   **Error Handling**: Monitor the Langflow logs and the stderr output from your MCP servers for debugging.
-*   **Mock Data**: The web scraping server provided uses mock data for demonstration. In a real implementation, you would need to implement actual web scraping logic with proper error handling and respect for robots.txt files.
+- **Absolute Paths**: Use absolute paths to your MCP server Python files in the **Command** fields.
+- **Dependencies**: Ensure that `fastmcp` and any other required libraries are installed in the Python environment where Langflow is running.
+- **Error Handling**: Monitor the Langflow logs and the stderr output from your MCP servers for debugging.
+- **Mock Data**: The web scraping server provided uses mock data for demonstration. In a real implementation, you would need to implement actual web scraping logic with proper error handling and respect for robots.txt files.
 
 ### MCP Tool Design Principles
 
-*   **Single Responsibility**: Each MCP server focuses on one specific task (scraping, processing, or comparison)
-*   **Composability**: Tools are designed to work together in sequence
-*   **Idempotent Operations**: Same input produces the same output for reliability
-*   **Error Tolerance**: Each server includes error handling for graceful failure recovery
+- **Single Responsibility**: Each MCP server focuses on one specific task (scraping, processing, or comparison)
+- **Composability**: Tools are designed to work together in sequence
+- **Idempotent Operations**: Same input produces the same output for reliability
+- **Error Tolerance**: Each server includes error handling for graceful failure recovery
 
 ### Agent Orchestration Guidelines
 
-*   **Clear Instructions**: The agent has explicit guidance on when to use each tool
-*   **Context Management**: Ensure the agent maintains context across tool calls
-*   **Performance Considerations**: Be mindful of tool execution times for better user experience
-*   **Fallback Strategies**: Define what the agent should do if a tool fails
+- **Clear Instructions**: The agent has explicit guidance on when to use each tool
+- **Context Management**: Ensure the agent maintains context across tool calls
+- **Performance Considerations**: Be mindful of tool execution times for better user experience
+- **Fallback Strategies**: Define what the agent should do if a tool fails
 
 ### Advanced Extensions (Optional)
 
-*   **Hierarchical Tool Structure**: Add sub-tools within each MCP server for more granular capabilities
-*   **Adaptive Tool Selection**: Allow the agent to conditionally skip tools based on query complexity
-*   **Multi-Agent Collaboration**: Consider specialized agents for different aspects of price comparison
+- **Hierarchical Tool Structure**: Add sub-tools within each MCP server for more granular capabilities
+- **Adaptive Tool Selection**: Allow the agent to conditionally skip tools based on query complexity
+- **Multi-Agent Collaboration**: Consider specialized agents for different aspects of price comparison
 
 This implementation leverages Langflow's MCP integration capabilities to create a sophisticated agentic workflow where the LLM serves as the orchestrator of specialized external tools, all communicating through the standardized MCP protocol.
 

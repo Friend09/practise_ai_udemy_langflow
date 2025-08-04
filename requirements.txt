@@ -336,6 +336,8 @@ fastavro==1.9.7
     #   langflow
 fastjsonschema==2.21.1
     # via nbformat
+fastmcp==1.0
+    # via -r requirements.in
 filelock==3.18.0
     # via
     #   datasets
@@ -514,6 +516,7 @@ httpx==0.27.2
     #   e2b
     #   e2b-code-interpreter
     #   elevenlabs
+    #   fastmcp
     #   gotrue
     #   groq
     #   ibm-watsonx-ai
@@ -866,6 +869,7 @@ mccabe==0.7.0
     # via pylint
 mcp==1.10.1
     # via
+    #   fastmcp
     #   langflow
     #   langflow-base
     #   pydantic-ai-slim
@@ -1228,6 +1232,7 @@ pydantic==2.10.6
     #   elevenlabs
     #   fastapi
     #   fastapi-pagination
+    #   fastmcp
     #   firecrawl-py
     #   google-cloud-aiplatform
     #   google-generativeai
@@ -1283,6 +1288,7 @@ pydantic-graph==0.0.55
     # via pydantic-ai-slim
 pydantic-settings==2.10.1
     # via
+    #   fastmcp
     #   langchain-community
     #   langflow
     #   langflow-base
@@ -1371,6 +1377,7 @@ python-dotenv==1.1.1
     #   -r requirements.in
     #   astra-assistants
     #   environs
+    #   fastmcp
     #   firecrawl-py
     #   litellm
     #   pydantic-settings
@@ -1674,6 +1681,7 @@ typer==0.16.0
     # via
     #   chromadb
     #   docling-core
+    #   fastmcp
     #   langflow-base
     #   qianfan
 types-awscrt==0.27.4
