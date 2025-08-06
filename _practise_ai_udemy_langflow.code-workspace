@@ -14,6 +14,11 @@
 						"/Users/vamsi_mbmax/Developer/VAM_Documents/01_vam_PROJECTS/LEARNING/proj_AI/dev_proj_AI/practise_ai_udemy_langflow/dev/mcp_servers/web_scraping_mcp_server.py"
 					]
 				},
+				"local-data-price-processor": {
+					"type": "stdio",
+					"command": "/Users/vamsi_mbmax/Developer/VAM_Documents/01_vam_PROJECTS/LEARNING/proj_AI/dev_proj_AI/practise_ai_udemy_langflow/.venv/bin/python3",
+					"args": ["/Users/vamsi_mbmax/Developer/VAM_Documents/01_vam_PROJECTS/LEARNING/proj_AI/dev_proj_AI/practise_ai_udemy_langflow/dev/mcp_servers/data_processing_mcp_server.py"]
+				}
 			},
 			"inputs": []
 		}
