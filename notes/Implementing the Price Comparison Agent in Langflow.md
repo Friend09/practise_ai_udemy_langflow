@@ -18,6 +18,39 @@ As clarified in the MCP documentation, Langflow acts as an MCP client and connec
 
 ## Updated Architecture Overview
 
+```mermaid
+flowchart LR
+  subgraph Perception
+    ChatInput(["Chat Input"])
+  end
+
+  subgraph Agentic_Workflow
+    Agent(["Agent (LLM)"])
+  end
+
+  subgraph Tools_Layer
+    SWSS[/"Serper Web Search\nMCP Server"/]
+    WSCR[/"Web Scraping\nMCP Server"/]
+    DPROC[/"Data Processing\nMCP Server"/]
+    PCOMP[/"Price Comparison\nMCP Server"/]
+  end
+
+  subgraph Response
+    ChatOutput(["Chat Output"])
+  end
+
+  ChatInput --> Agent
+  Agent -- "search_products" --> SWSS
+  SWSS --> Agent
+  Agent -- "scrape_product_price" --> WSCR
+  WSCR --> Agent
+  Agent -- "process_scraped_data" --> DPROC
+  DPROC --> Agent
+  Agent -- "comprehensive_price_analysis" --> PCOMP
+  PCOMP --> Agent
+  Agent --> ChatOutput
+```
+
 The enhanced price comparison agent now includes **four specialized MCP servers** that work together to provide comprehensive product search and price comparison capabilities:
 
 1. **Serper Web Search MCP Server** - Discovers product URLs using Google Search API
@@ -594,7 +627,7 @@ This connectivity represents the complete enhanced agentic workflow, where:
 
 The updated price comparison agent supports multiple usage patterns:
 
-### Pattern 1: Autonomous Product Search
+### Pattern 1: Autonomous Product Discovery
 
 **User Input**: "Find the best price for iPhone 15 Pro Max"
 **Workflow**: Search → Scrape → Process → Compare
