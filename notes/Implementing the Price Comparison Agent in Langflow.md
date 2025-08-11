@@ -16,11 +16,268 @@ As clarified in the MCP documentation, Langflow acts as an MCP client and connec
 2. **Use the `MCP Tools` component** in Langflow to connect to these external servers
 3. **Connect the `MCP Tools` components** to an `Agent` component that orchestrates their use through the MCP protocol
 
+## Updated Architecture Overview
+
+The enhanced price comparison agent now includes **four specialized MCP servers** that work together to provide comprehensive product search and price comparison capabilities:
+
+1. **Serper Web Search MCP Server** - Discovers product URLs using Google Search API
+2. **Web Scraping MCP Server** - Extracts prices from discovered product pages
+3. **Data Processing MCP Server** - Standardizes and validates scraped data
+4. **Price Comparison MCP Server** - Analyzes prices and provides recommendations
+
+This creates a sophisticated pipeline: **Search → Scrape → Process → Compare**
+
 ## Step 1: Create External MCP Servers (The Communication Infrastructure)
 
-Before building your Langflow flow, you need to create the external MCP servers that will provide the specialized capabilities for your price comparison agent. Remember that MCP is the **communication infrastructure** that enables the LLM to interact with external tools. Based on our architecture, you need three separate MCP servers:
+Before building your Langflow flow, you need to create the external MCP servers that will provide the specialized capabilities for your price comparison agent. Remember that MCP is the **communication infrastructure** that enables the LLM to interact with external tools. Based on our enhanced architecture, you need four separate MCP servers:
 
-### 1.1 Web Scraping MCP Server
+### 1.1 Serper Web Search MCP Server
+
+Create a file named `serper_web_search_mcp_server.py`:
+
+```python
+import requests
+import json
+import sys
+import time
+import os
+from mcp.server.fastmcp import FastMCP
+from typing import Dict, List, Optional, Any
+from dataclasses import dataclass
+from urllib.parse import urlparse
+
+# Try to load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+    print("Loaded environment variables from .env file", file=sys.stderr)
+except ImportError:
+    print("python-dotenv not installed, using system environment variables only", file=sys.stderr)
+except Exception as e:
+    print(f"Error loading .env file: {e}", file=sys.stderr)
+
+@dataclass
+class SearchResult:
+    """Represents a search result from Serper API."""
+    title: str
+    url: str
+    snippet: str
+    domain: str
+    position: int
+    price: Optional[str] = None
+    rating: Optional[float] = None
+    review_count: Optional[int] = None
+
+class SerperWebSearchAnalyzer:
+    """
+    SerperWebSearchAnalyzer provides intelligent product search using Serper API.
+
+    This server discovers product URLs across e-commerce sites and provides
+    targeted search results for price comparison workflows.
+    """
+
+    def __init__(self):
+        self.mcp = FastMCP("serper_web_search_analyzer")
+        print("Serper Web Search MCP Server initialized", file=sys.stderr)
+
+        # Serper API configuration - read from environment variables
+        self.api_key = os.getenv('SERPER_APIKEY') or os.getenv('SERPER_API_KEY')
+        if not self.api_key:
+            print("ERROR: SERPER_APIKEY or SERPER_API_KEY environment variable not found!", file=sys.stderr)
+            print("Please set your Serper API key in the .env file or environment", file=sys.stderr)
+            sys.exit(1)
+
+        self.base_url = "https://google.serper.dev/search"
+        self.headers = {
+            'X-API-KEY': self.api_key,
+            'Content-Type': 'application/json'
+        }
+
+        # Common e-commerce domains for filtering
+        self.ecommerce_domains = {
+            'amazon.com', 'ebay.com', 'walmart.com', 'target.com',
+            'bestbuy.com', 'newegg.com', 'etsy.com', 'shopify.com',
+            'alibaba.com', 'aliexpress.com', 'costco.com', 'homedepot.com',
+            'lowes.com', 'wayfair.com', 'overstock.com', 'zappos.com'
+        }
+
+        self._register_tools()
+
+    def _register_tools(self):
+        @self.mcp.tool()
+        async def search_products(product_name: str, max_results: int = 10, include_price_sites_only: bool = True) -> dict:
+            """
+            Searches for products using Serper API and returns e-commerce results.
+
+            Returns URLs and product information for price comparison.
+            """
+            print(f"Searching for product: {product_name}", file=sys.stderr)
+
+            # Enhanced search query for better product results
+            enhanced_query = f"{product_name} price buy shop"
+
+            # Make API request to Serper
+            payload = json.dumps({
+                "q": enhanced_query,
+                "num": max_results,
+                "gl": "us"
+            })
+
+            try:
+                response = requests.post(self.base_url, headers=self.headers, data=payload, timeout=30)
+                response.raise_for_status()
+                api_response = response.json()
+
+                # Process and filter results
+                results_data = []
+                for result in api_response.get('organic', []):
+                    domain = self._extract_domain(result.get('link', ''))
+                    if include_price_sites_only:
+                        if not any(ecom_domain in domain for ecom_domain in self.ecommerce_domains):
+                            continue
+
+                    result_dict = {
+                        "title": result.get('title', ''),
+                        "url": result.get('link', ''),
+                        "domain": domain,
+                        "snippet": result.get('snippet', ''),
+                        "position": result.get('position', 0)
+                    }
+
+                    # Extract price if mentioned in snippet
+                    snippet = result.get('snippet', '')
+                    if '$' in snippet:
+                        import re
+                        price_match = re.search(r'\$[\d,]+\.?\d*', snippet)
+                        if price_match:
+                            result_dict["price_mentioned"] = price_match.group()
+
+                    results_data.append(result_dict)
+
+                print(f"Found {len(results_data)} relevant results for {product_name}", file=sys.stderr)
+
+                return {
+                    "product_name": product_name,
+                    "success": True,
+                    "total_results": len(results_data),
+                    "ecommerce_filtered": include_price_sites_only,
+                    "results": results_data
+                }
+
+            except Exception as e:
+                print(f"Serper API request failed: {e}", file=sys.stderr)
+                return {
+                    "product_name": product_name,
+                    "success": False,
+                    "error": f"Search failed: {str(e)}",
+                    "results": []
+                }
+
+        @self.mcp.tool()
+        async def get_product_urls_for_comparison(product_name: str, target_sites: Optional[List[str]] = None) -> dict:
+            """
+            Gets product URLs specifically for price comparison from major e-commerce sites.
+
+            Returns organized URLs by site for systematic price comparison.
+            """
+            print(f"Getting comparison URLs for: {product_name}", file=sys.stderr)
+
+            if not target_sites:
+                target_sites = ["amazon.com", "walmart.com", "target.com", "bestbuy.com", "ebay.com"]
+
+            # Search for product on specific sites
+            search_query = f"{product_name} site:({' OR site:'.join(target_sites)})"
+
+            payload = json.dumps({
+                "q": search_query,
+                "num": 20,
+                "gl": "us"
+            })
+
+            try:
+                response = requests.post(self.base_url, headers=self.headers, data=payload, timeout=30)
+                response.raise_for_status()
+                api_response = response.json()
+
+                # Organize results by site
+                urls_by_site = {site: [] for site in target_sites}
+
+                for result in api_response.get('organic', []):
+                    url = result.get('link', '')
+                    domain = self._extract_domain(url)
+
+                    for site in target_sites:
+                        if site in domain:
+                            urls_by_site[site].append({
+                                "url": url,
+                                "title": result.get('title', ''),
+                                "snippet": result.get('snippet', ''),
+                                "price_mentioned": self._extract_price_from_snippet(result.get('snippet', ''))
+                            })
+                            break
+
+                # Remove empty sites
+                urls_by_site = {site: urls for site, urls in urls_by_site.items() if urls}
+
+                total_urls = sum(len(urls) for urls in urls_by_site.values())
+                print(f"Found {total_urls} URLs across {len(urls_by_site)} sites", file=sys.stderr)
+
+                return {
+                    "product_name": product_name,
+                    "target_sites": target_sites,
+                    "success": True,
+                    "total_urls_found": total_urls,
+                    "sites_with_results": len(urls_by_site),
+                    "urls_by_site": urls_by_site
+                }
+
+            except Exception as e:
+                print(f"Error in URL search: {e}", file=sys.stderr)
+                return {
+                    "product_name": product_name,
+                    "success": False,
+                    "error": str(e),
+                    "urls_by_site": {}
+                }
+
+    def _extract_domain(self, url: str) -> str:
+        """Extracts domain name from URL."""
+        try:
+            parsed = urlparse(url)
+            domain = parsed.netloc.lower()
+            return domain.replace('www.', '')
+        except Exception:
+            return 'unknown'
+
+    def _extract_price_from_snippet(self, snippet: str) -> Optional[str]:
+        """Extracts price from search result snippet."""
+        if '$' in snippet:
+            import re
+            price_match = re.search(r'\$[\d,]+\.?\d*', snippet)
+            if price_match:
+                return price_match.group()
+        return None
+
+    def run(self):
+        try:
+            print("Starting Serper Web Search MCP Server...", file=sys.stderr)
+            self.mcp.run(transport="stdio")
+        except Exception as e:
+            print(f"Fatal Error in Serper Web Search MCP Server: {str(e)}", file=sys.stderr)
+            sys.exit(1)
+
+if __name__ == "__main__":
+    analyzer = SerperWebSearchAnalyzer()
+    analyzer.run()
+```
+
+**Setup Requirements:**
+
+- Install required packages: `pip install requests python-dotenv`
+- Get a Serper API key from [serper.dev](https://serper.dev)
+- Set environment variable: `SERPER_APIKEY=your_api_key_here`
+
+### 1.2 Web Scraping MCP Server
 
 Create a file named `web_scraping_mcp_server.py`:
 
@@ -83,7 +340,7 @@ if __name__ == "__main__":
     analyzer.run()
 ```
 
-### 1.2 Data Processing MCP Server
+### 1.3 Data Processing MCP Server
 
 Create a file named `data_processing_mcp_server.py`:
 
@@ -140,7 +397,7 @@ if __name__ == "__main__":
     analyzer.run()
 ```
 
-### 1.3 Price Comparison MCP Server
+### 1.4 Price Comparison MCP Server
 
 Create a file named `price_comparison_mcp_server.py`:
 
@@ -227,9 +484,22 @@ Now that you have your external MCP servers (the specialized tools), you can bui
 
 ### 2.2 Add and Configure `MCP Tools` Components (The Tool Communication Layer)
 
-You need to add three separate `MCP Tools` components, one for each external MCP server. These components form the communication infrastructure of your agentic workflow, enabling the LLM to discover and interact with external tools through the standardized MCP protocol:
+You need to add four separate `MCP Tools` components, one for each external MCP server. These components form the communication infrastructure of your agentic workflow, enabling the LLM to discover and interact with external tools through the standardized MCP protocol:
 
-#### 2.2.1 Web Scraping MCP Tools Component
+#### 2.2.1 Serper Web Search MCP Tools Component
+
+1. Drag and drop an `MCP Tools` component onto the canvas.
+2. Rename it to "Serper Web Search Tools" for clarity.
+3. Double-click to configure:
+   - Click **"Add MCP Server"**.
+   - Select **STDIO** mode.
+   - **Name**: `SerperWebSearchServer`
+   - **Command**: `python /absolute/path/to/your/serper_web_search_mcp_server.py`
+   - Click **"Add Server"**.
+4. In the **Tool** field, select `search_products` or `get_product_urls_for_comparison` (or leave blank for all tools).
+5. Enable **Tool Mode** in the component's header menu.
+
+#### 2.2.2 Web Scraping MCP Tools Component
 
 1.  Drag and drop an `MCP Tools` component onto the canvas.
 2.  Rename it to "Web Scraping Tools" for clarity.
@@ -242,112 +512,181 @@ You need to add three separate `MCP Tools` components, one for each external MCP
 4.  In the **Tool** field, select `scrape_product_price` (or leave blank for all tools).
 5.  Enable **Tool Mode** in the component's header menu.
 
-#### 2.2.2 Data Processing MCP Tools Component
+#### 2.2.3 Data Processing MCP Tools Component
 
-1.  Add another `MCP Tools` component.
-2.  Rename it to "Data Processing Tools".
-3.  Configure:
-    - **Name**: `DataProcessingServer`
-    - **Command**: `python /absolute/path/to/your/data_processing_mcp_server.py`
-    - **Tool**: `process_scraped_data`
-4.  Enable **Tool Mode**.
+1. Add another `MCP Tools` component.
+2. Rename it to "Data Processing Tools".
+3. Configure:
+   - **Name**: `DataProcessingServer`
+   - **Command**: `python /absolute/path/to/your/data_processing_mcp_server.py`
+   - **Tool**: `process_scraped_data`
+4. Enable **Tool Mode**.
 
-#### 2.2.3 Price Comparison MCP Tools Component
+#### 2.2.4 Price Comparison MCP Tools Component
 
-1.  Add a third `MCP Tools` component.
-2.  Rename it to "Price Comparison Tools".
-3.  Configure:
-    - **Name**: `PriceComparisonServer`
-    - **Command**: `python /absolute/path/to/your/price_comparison_mcp_server.py`
-    - **Tool**: `find_lowest_price`
-4.  Enable **Tool Mode**.
+1. Add a fourth `MCP Tools` component.
+2. Rename it to "Price Comparison Tools".
+3. Configure:
+   - **Name**: `PriceComparisonServer`
+   - **Command**: `python /absolute/path/to/your/price_comparison_mcp_server.py`
+   - **Tool**: `comprehensive_price_analysis`
+4. Enable **Tool Mode**.
 
 ### 2.3 Configure the Agent (The "Brain" of Your Agentic Workflow)
 
-1.  Configure the `Agent` component, which acts as the central orchestrator of your agentic workflow:
+1. Configure the `Agent` component, which acts as the central orchestrator of your agentic workflow:
 
-    - **Model Provider**: Select your LLM provider (e.g., `OpenAI`).
-    - **Model Name**: Choose a suitable model (e.g., `gpt-4-turbo`).
-    - **API Key**: Provide your API key.
-    - **Agent Instructions**: Provide clear instructions for orchestrating the workflow:
+   - **Model Provider**: Select your LLM provider (e.g., `OpenAI`).
+   - **Model Name**: Choose a suitable model (e.g., `gpt-4-turbo`).
+   - **API Key**: Provide your API key.
+   - **Agent Instructions**: Provide clear instructions for orchestrating the enhanced workflow:
 
-      ```
-      You are a price comparison assistant coordinating an agentic workflow. When a user asks for product price comparisons:
+     ```text
+     You are an intelligent price comparison assistant coordinating an enhanced agentic workflow. When a user asks for product price comparisons:
 
-      1. PLANNING: Analyze the user's request to understand the product they want to compare
-      2. TOOL SELECTION: Use these MCP tools in sequence:
-         a. First, use scrape_product_price to gather raw data from multiple websites
-         b. Next, use process_scraped_data to clean and standardize the results
-         c. Finally, use find_lowest_price to identify the best deal
-      3. SYNTHESIS: Present a comprehensive answer including:
-         - The lowest price and where to find it
-         - Price comparison across all sources
-         - Any relevant shipping or availability details
-         - Savings compared to the highest price
+     1. PLANNING: Analyze the user's request to understand the product they want to compare
+     2. DISCOVERY: Use search_products from Serper Web Search to find relevant product URLs across e-commerce sites
+     3. EXTRACTION: Use scrape_product_price from Web Scraping to gather actual price data from discovered URLs
+     4. PROCESSING: Use process_scraped_data from Data Processing to clean and standardize the results
+     5. ANALYSIS: Use comprehensive_price_analysis from Price Comparison to identify the best deals and generate insights
+     6. SYNTHESIS: Present a comprehensive answer including:
+        - The lowest price and where to find it
+        - Complete price comparison across all sources
+        - Potential savings and value recommendations
+        - Site-specific insights and trends
+        - Direct links to the best deals
 
-      Remember that you are orchestrating these specialized tools via the MCP protocol, and each tool handles a specific part of the workflow.
-      ```
+     Remember that you are orchestrating these specialized tools via the MCP protocol. Each tool handles a specific part of the enhanced workflow: Search → Scrape → Process → Compare.
 
-### 2.4 Connect the Agentic Workflow Components
+     If a user provides specific website URLs, you can skip the search step and proceed directly to scraping.
+     ```
 
-1.  Connect the **Toolset** outputs of all three `MCP Tools` components to the **Tools** input of the `Agent` component. This makes the MCP tools accessible to the Agent.
-2.  Connect `Chat Input` to the `Input` of the `Agent` component (perception phase of the workflow).
-3.  Connect the `Response` output of the `Agent` component to the `Chat Output` (action/response phase).
+### 2.4 Connect the Enhanced Agentic Workflow Components
 
-This connectivity represents the complete agentic workflow, where:
+1. Connect the **Toolset** outputs of all four `MCP Tools` components to the **Tools** input of the `Agent` component. This makes all MCP tools accessible to the Agent.
+2. Connect `Chat Input` to the `Input` of the `Agent` component (perception phase of the workflow).
+3. Connect the `Response` output of the `Agent` component to the `Chat Output` (action/response phase).
+
+This connectivity represents the complete enhanced agentic workflow, where:
 
 - The user input enters the system via Chat Input (perception)
 - The Agent processes the input and plans necessary actions (reasoning/planning)
-- The Agent orchestrates the MCP tools in sequence (action execution via MCP)
-- The Agent synthesizes a response based on tool outputs (synthesis)
+- The Agent orchestrates the MCP tools in the optimal sequence: Search → Scrape → Process → Compare (action execution via MCP)
+- The Agent synthesizes a comprehensive response based on all tool outputs (synthesis)
 - The result is delivered to the user via Chat Output (response)
 
-## Step 3: Testing Your Agentic Price Comparison Workflow
+## Step 3: Testing Your Enhanced Agentic Price Comparison Workflow
 
-1.  Open the Langflow **Playground**.
-2.  Enter a query like: "Find the lowest price for a DJI Mavic Pro 4 across different websites."
-3.  Watch as the agentic workflow executes:
-    - **Perception**: The system receives your query about the DJI Mavic Pro 4
-    - **Planning**: The Agent (LLM) determines it needs to follow the defined workflow
-    - **Action Execution** (via MCP protocol):
-      - The Agent calls the web scraping MCP tool to gather raw price data
-      - The Agent then calls the data processing MCP tool to standardize the results
-      - Finally, the Agent calls the price comparison MCP tool to analyze and find the best deal
-    - **Response Synthesis**: The Agent creates a comprehensive answer based on all tool results
-    - **Output**: The system presents a clear comparison showing the lowest price, where to find it, and how much you'll save
+1. Open the Langflow **Playground**.
+2. Enter a query like: "Find the lowest price for a DJI Mavic Pro 4 across different websites."
+3. Watch as the enhanced agentic workflow executes:
+   - **Perception**: The system receives your query about the DJI Mavic Pro 4
+   - **Planning**: The Agent (LLM) determines it needs to follow the enhanced workflow
+   - **Action Execution** (via MCP protocol):
+     - The Agent calls the Serper web search MCP tool to discover relevant product URLs
+     - The Agent then calls the web scraping MCP tool to extract price data from discovered URLs
+     - The Agent calls the data processing MCP tool to standardize and validate the results
+     - Finally, the Agent calls the price comparison MCP tool to perform comprehensive analysis
+   - **Response Synthesis**: The Agent creates a detailed answer based on all tool results
+   - **Output**: The system presents a comprehensive comparison with lowest prices, savings potential, site recommendations, and direct purchase links
+
+## Enhanced Workflow Integration
+
+The updated price comparison agent supports multiple usage patterns:
+
+### Pattern 1: Autonomous Product Search
+
+**User Input**: "Find the best price for iPhone 15 Pro Max"
+**Workflow**: Search → Scrape → Process → Compare
+**Agent Actions**:
+
+1. Uses Serper to find iPhone product pages across e-commerce sites
+2. Scrapes prices from discovered URLs
+3. Processes and standardizes price data
+4. Provides comprehensive comparison with recommendations
+
+### Pattern 2: Targeted Site Comparison
+
+**User Input**: "Compare iPhone 15 Pro Max prices on Amazon, Best Buy, and Walmart"
+**Workflow**: Targeted Search → Scrape → Process → Compare
+**Agent Actions**:
+
+1. Uses Serper with site-specific queries
+2. Scrapes from specified retailers only
+3. Processes data with focus on requested sites
+4. Provides side-by-side comparison
+
+### Pattern 3: Direct URL Analysis
+
+**User Input**: "Compare prices for these URLs: [list of product URLs]"
+**Workflow**: Scrape → Process → Compare (skips search)
+**Agent Actions**:
+
+1. Directly scrapes provided URLs
+2. Processes extracted data
+3. Provides detailed price analysis
+
+## Enhanced Workflow Benefits
+
+The integration of Serper Web Search provides several key advantages:
+
+### Automated Product Discovery
+
+- **No Manual URL Collection**: Users don't need to provide specific product URLs
+- **Comprehensive Coverage**: Automatically searches across major e-commerce platforms
+- **Real-time Results**: Finds current product listings and availability
+
+### Intelligent Search Optimization
+
+- **E-commerce Focus**: Filters results to prioritize shopping sites
+- **Price-aware Queries**: Enhances search terms to find price-relevant pages
+- **Site-specific Targeting**: Can target specific retailers based on user preferences
+
+### Scalable Comparison
+
+- **Dynamic Site Discovery**: Finds products on new or lesser-known e-commerce sites
+- **Broad Market Coverage**: Not limited to pre-configured websites
+- **Contextual Results**: Returns search results with price mentions and product details
 
 ## Implementation Best Practices
 
-Based on MCP agent best practices:
+Based on MCP agent best practices and the enhanced architecture:
 
 ### Technical Implementation Notes
 
 - **Absolute Paths**: Use absolute paths to your MCP server Python files in the **Command** fields.
-- **Dependencies**: Ensure that `fastmcp` and any other required libraries are installed in the Python environment where Langflow is running.
+- **Dependencies**: Ensure that `fastmcp`, `requests`, `python-dotenv`, and other required libraries are installed in the Python environment where Langflow is running.
+- **API Keys**: Set up your Serper API key in environment variables (`SERPER_APIKEY`) for the web search functionality.
 - **Error Handling**: Monitor the Langflow logs and the stderr output from your MCP servers for debugging.
-- **Mock Data**: The web scraping server provided uses mock data for demonstration. In a real implementation, you would need to implement actual web scraping logic with proper error handling and respect for robots.txt files.
+- **Rate Limiting**: The Serper and web scraping servers include rate limiting to respect API limits and website policies.
+- **Mock Data**: The web scraping server can use mock data for demonstration. In production, implement actual web scraping with proper error handling and robots.txt compliance.
 
-### MCP Tool Design Principles
+### Enhanced MCP Tool Design Principles
 
-- **Single Responsibility**: Each MCP server focuses on one specific task (scraping, processing, or comparison)
-- **Composability**: Tools are designed to work together in sequence
+- **Single Responsibility**: Each MCP server focuses on one specific task (search, scraping, processing, or comparison)
+- **Sequential Composability**: Tools are designed to work together in the enhanced pipeline: Search → Scrape → Process → Compare
+- **Data Flow Optimization**: Each tool outputs data in formats optimized for the next tool in the sequence
 - **Idempotent Operations**: Same input produces the same output for reliability
-- **Error Tolerance**: Each server includes error handling for graceful failure recovery
+- **Graceful Degradation**: Each server includes error handling for graceful failure recovery
 
 ### Agent Orchestration Guidelines
 
-- **Clear Instructions**: The agent has explicit guidance on when to use each tool
-- **Context Management**: Ensure the agent maintains context across tool calls
-- **Performance Considerations**: Be mindful of tool execution times for better user experience
-- **Fallback Strategies**: Define what the agent should do if a tool fails
+- **Intelligent Tool Selection**: The agent can adaptively choose between direct URL scraping or search-first workflows
+- **Context Management**: Ensure the agent maintains context across the extended tool chain
+- **Performance Optimization**: Be mindful of tool execution times, especially for search and scraping operations
+- **Fallback Strategies**: Define what the agent should do if any tool in the pipeline fails
+- **User Experience**: Provide progress indicators for longer operations involving multiple web requests
 
 ### Advanced Extensions (Optional)
 
-- **Hierarchical Tool Structure**: Add sub-tools within each MCP server for more granular capabilities
-- **Adaptive Tool Selection**: Allow the agent to conditionally skip tools based on query complexity
-- **Multi-Agent Collaboration**: Consider specialized agents for different aspects of price comparison
+- **Parallel Processing**: Modify web scraping to process multiple URLs concurrently
+- **Cache Integration**: Add caching layers to avoid redundant searches and scraping
+- **Price History**: Extend data processing to track price changes over time
+- **Multi-region Support**: Use Serper's location parameters for region-specific price comparison
+- **Alert Systems**: Add notification capabilities for price drop alerts
+- **Comparison Refinement**: Allow users to specify preferred retailers or price ranges
 
-This implementation leverages Langflow's MCP integration capabilities to create a sophisticated agentic workflow where the LLM serves as the orchestrator of specialized external tools, all communicating through the standardized MCP protocol.
+This enhanced implementation leverages both intelligent search discovery and targeted web scraping to create a more autonomous and comprehensive price comparison agent.
 
 ## References
 
